@@ -56,4 +56,9 @@ struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index,
  */
 const char *mft_type_to_string(mft_type_t type);
 
+/*
+ * Return a (type) given its string representation.
+ */
+int mft_string_to_type(const char *str, mft_type_t *type);
+
 #endif /* MFT_H */

@@ -46,7 +46,7 @@ int mft_validate(struct mft *mft, size_t mft_size)
      * declared number of manifest entries.
      */
     if (mft_size < (sizeof(struct mft) +
-                (mft->entries * sizeof(struct mft_entry))))
+                     (mft->entries * sizeof(struct mft_entry))))
         return -1;
 
     for (unsigned i = 0; i != mft->entries; i++) {
@@ -54,7 +54,21 @@ int mft_validate(struct mft *mft, size_t mft_size)
          * Ensure name[] is always terminated with \0, even if there is garbage
          * in the array itself.
          */
-        mft->e[i].name[MFT_NAME_MAX] = 0;
+        if (mft->e[i].name[MFT_NAME_MAX] != 0)
+            return -1;
+
+        {
+            /* Ensure name[] is alphanumeric: */
+            unsigned char *p = (unsigned char *) mft->e[i].name;
+            for (; *p; p++)
+            /* isalnum() without the ctype.h dependency: */
+                if (*p - '0' > ('9'-'0') && (*p | 0x20) - 'a' > ('z'-'a'))
+                    return -1;
+            /* TODO moving this check here so we don't have to duplicate code */
+            if (p == (unsigned char *) &mft->e[i].name)
+                return -1; /* it's empty */
+        }
+
         /*
          * Sanitize private fields (to be used by the tender/bindings):
          *
@@ -106,4 +120,17 @@ const char *mft_type_to_string(mft_type_t type)
         default:
             assert(false);
     }
+}
+
+int mft_string_to_type(const char *str, mft_type_t *type)
+{
+    assert(type && str);
+    if (!strcmp(str, "BLOCK_BASIC")) {
+        *type = MFT_BLOCK_BASIC;
+    }
+    else if (!strcmp(str, "NET_BASIC")) {
+        *type = MFT_NET_BASIC;
+    } else
+          return -1;
+    return 0;
 }
